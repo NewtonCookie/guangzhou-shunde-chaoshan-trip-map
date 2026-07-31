@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#f7f3ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>广州 · 顺德 · 汕头 3 日吃喝地图</title>
+<meta name="description" content="2026年8月1日至3日广州、顺德、汕头三日自驾吃喝路线，高德一键导航。">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --paper: #f7f3ec;
+  --paper-deep: #efe8dc;
+  --card: rgba(255, 253, 249, .94);
+  --ink: #25201b;
+  --muted: #716960;
+  --faint: #9f968d;
+  --line: rgba(64, 51, 39, .12);
+  --red: #c44932;
+  --orange: #dc7b2d;
+  --green: #44725b;
+  --blue: #346f86;
+  --purple: #785889;
+  --shadow: 0 10px 34px rgba(67, 47, 29, .09);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--paper); }
+body {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 2%, rgba(220,123,45,.11), transparent 27rem),
+    linear-gradient(180deg, #faf7f1 0%, var(--paper) 48%, #f4eee5 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+               "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+a { color: inherit; }
+button { font: inherit; }
+
+#map {
+  width: 100%;
+  height: 38vh;
+  min-height: 290px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--paper-deep);
+}
+.tabs {
+  position: sticky;
+  top: 38vh;
+  z-index: 99;
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 11px 14px;
+  background: rgba(250,247,241,.88);
+  border-bottom: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 15px;
+  background: rgba(75,60,46,.07);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 680;
+  cursor: pointer;
+  transition: transform .2s, background .2s, color .2s;
+}
+.tab:active { transform: scale(.96); }
+.tab.active { color: #fff; background: var(--ink); }
+
+.content {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 18px 15px calc(30px + var(--safe-bottom));
+}
+.hero {
+  padding: 22px 4px 18px;
+}
+.eyebrow {
+  margin-bottom: 8px;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.hero h1 {
+  max-width: 620px;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+  font-size: clamp(30px, 7vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+.hero p {
+  margin-top: 11px;
+  color: var(--muted);
+  font-size: 16px;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.info-card, .callout, .route-bar, .card, .source-card {
+  border: 1px solid rgba(87,64,43,.08);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.info-card {
+  min-height: 104px;
+  border-radius: 18px;
+  padding: 15px;
+}
+.info-card .label {
+  margin-bottom: 7px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .055em;
+}
+.info-card .value {
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+.section-head {
+  padding: 24px 3px 9px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+.callout {
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.callout strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+.callout p { color: var(--muted); font-size: 14px; }
+.callout.danger { border-left: 4px solid var(--red); }
+.callout.safe { border-left: 4px solid var(--green); }
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 760;
+  text-decoration: none;
+}
+.day-list { display: grid; gap: 9px; }
+.day-link {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 17px;
+  padding: 15px 16px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.day-link .top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 780;
+}
+.day-link .dot { width: 9px; height: 9px; border-radius: 50%; }
+.day-link .sub { margin: 4px 0 0 18px; color: var(--muted); font-size: 13px; }
+
+.day-head { padding: 19px 3px 11px; }
+.day-head .kicker { color: var(--red); font-size: 12px; font-weight: 800; }
+.day-head h2 {
+  margin-top: 3px;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+  font-size: 29px;
+  line-height: 1.18;
+  letter-spacing: -.025em;
+}
+.day-head p { margin-top: 5px; color: var(--muted); font-size: 14px; }
+.route-bar {
+  margin: 4px 0 15px;
+  border-radius: 16px;
+  padding: 13px 15px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.route-bar strong { color: var(--ink); }
+.timeline {
+  position: relative;
+  padding-left: 25px;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 18px;
+  bottom: 18px;
+  width: 1px;
+  background: rgba(80,61,42,.18);
+}
+.tl-item { position: relative; margin-bottom: 11px; }
+.tl-dot {
+  position: absolute;
+  top: 19px;
+  left: -22px;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(70,54,39,.08);
+}
+.tl-dot.food { background: var(--red); }
+.tl-dot.spot { background: var(--blue); }
+.tl-dot.drink { background: var(--purple); }
+.tl-dot.hotel { background: var(--orange); }
+.tl-dot.transport { background: var(--faint); }
+.card {
+  border-radius: 17px;
+  padding: 15px 16px;
+}
+.card .time {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 820;
+  letter-spacing: .02em;
+}
+.card .name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0 5px;
+  font-size: 17px;
+  font-weight: 780;
+}
+.badge {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 900;
+}
+.badge.food { color: var(--red); background: rgba(196,73,50,.11); }
+.badge.spot { color: var(--blue); background: rgba(52,111,134,.11); }
+.badge.drink { color: var(--purple); background: rgba(120,88,137,.11); }
+.card .desc { color: var(--muted); font-size: 14px; }
+.detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.chips, .links {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.chip {
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(74,58,43,.07);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 730;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-size: 13px;
+  font-weight: 820;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:active { filter: brightness(.9); }
+.btn.amap { color: #fff; background: #1b73e8; }
+.btn.dp { color: #fff; background: #e99110; }
+.btn.xhs { color: #fff; background: #e53a51; }
+.alt-note { color: var(--faint); font-size: 12px; }
+.source-card {
+  border-radius: 16px;
+  padding: 14px 15px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.source-card a { color: var(--red); font-weight: 700; }
+
+.leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  box-shadow: 0 12px 36px rgba(40,30,20,.18) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif !important;
+}
+.leaflet-popup-content { margin: 12px 14px !important; line-height: 1.55 !important; }
+.leaflet-control-attribution { font-size: 9px !important; opacity: .55; }
+.leaflet-control-zoom {
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 5px 20px rgba(38,27,18,.16) !important;
+}
+.leaflet-control-zoom a { border-color: rgba(40,30,20,.08) !important; }
+.locate-btn {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 4px 16px rgba(40,30,20,.16);
+  font-size: 17px;
+  cursor: pointer;
+}
+@media (max-width: 390px) {
+  .content { padding-left: 12px; padding-right: 12px; }
+  .info-card { min-height: 96px; padding: 13px; }
+  .btn { flex: 1 1 auto; }
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="tabs" id="tabs"></div>
+<main class="content" id="content"></main>
+
+<script>
+const HOTEL = { name: "全季酒店（广州黄埔南岗万达店）", lat: 23.101061, lng: 113.539095 };
+
+const DAYS = [
+  { id: 0, label: "总览", color: "#25201b", locations: [] },
+  {
+    id: 1,
+    label: "周六 · 顺德",
+    date: "8 月 1 日",
+    title: "大良三顿正餐，再加桑拿夜宵",
+    color: "#dc7b2d",
+    route: "全季南岗店 → 英姑猪杂粥 → 水仙头 → 会龙居 → 正嘢家桑拿夜宵 → 全季南岗店",
+    locations: [
+      {
+        name: "全季酒店（广州黄埔南岗万达店）", lat: 23.101061, lng: 113.539095,
+        type: "hotel", time: "08:00",
+        desc: "从南岗出发前往顺德大良，建议预留约 1.5 小时。",
+        detail: "高德地址：黄埔东路3768–3770号。出发前先确认酒店停车区取车出口。"
+      },
+      {
+        name: "英姑猪杂粥", lat: 22.827194, lng: 113.251935,
+        type: "food", time: "09:30–10:15",
+        desc: "第一顿正餐。猪杂粥做主角，炸物少点，后面还有三轮。",
+        budget: "约 ¥56/人",
+        detail: "高德：大良街道蚌岗5号首层。近期信号显示上午10点左右猪杂更新，适合把它当早午餐。",
+        pay: true, dianpingKeyword: "顺德 英姑猪杂粥", xhsKeyword: "顺德 英姑猪杂粥"
+      },
+      {
+        name: "清晖园博物馆", lat: 22.838508, lng: 113.250458,
+        type: "spot", time: "10:35–11:30",
+        desc: "短走一段；闷热、下雨或排队长，改华盖路室内消食。",
+        budget: "可放弃",
+        detail: "这是消食窗口，不是硬任务。周六客流大时，以体力和天气优先。",
+        dianping: false, xhsKeyword: "顺德 清晖园"
+      },
+      {
+        name: "水仙头私房菜（近良店）", lat: 22.827020, lng: 113.263748,
+        type: "food", time: "12:30–14:00",
+        desc: "第二顿正餐。盐焗蟹、蒸鱼、沙虫或尖椒鱼饼选 2–3 样。",
+        budget: "约 ¥151–160/人",
+        detail: "高德：良逢路六街1巷3号。10:30起营业，周六建议电话确认座位；不点烧鹅，把烧鹅留给会龙居。",
+        pay: true, dianpingKeyword: "水仙头私房菜 近良店", xhsKeyword: "顺德 水仙头私房菜"
+      },
+      {
+        name: "大良长休息", lat: 22.825757, lng: 113.303704,
+        type: "transport", time: "14:20–16:20", nav: false,
+        desc: "找商场或咖啡店坐下；不补甜品，也不再加第二个景点。"
+      },
+      {
+        name: "寻味顺德·会龙居私房菜（华侨城店）", lat: 22.825758, lng: 113.303704,
+        type: "food", time: "17:00–18:30",
+        desc: "第三顿正餐。烧鹅、过桥鱼汤、桂虾或鹅肠选 2–3 道。",
+        budget: "约 ¥95–115/人",
+        detail: "高德：逢沙三会大街右一巷24号。晚市17:00–21:00，不能拖到夜宵时段。",
+        pay: true, dianpingKeyword: "会龙居私房菜 华侨城店", xhsKeyword: "顺德 会龙居私房菜"
+      },
+      {
+        name: "欢乐海岸附近消食", lat: 22.821179, lng: 113.302782,
+        type: "spot", time: "18:45–20:00", nav: false,
+        desc: "只散步和喝水，不吃甜品，给桑拿夜宵留出两小时。"
+      },
+      {
+        name: "正嘢家美食（大良分店）", lat: 22.828071, lng: 113.266585,
+        type: "food", time: "20:30–21:20",
+        desc: "夜宵。桑拿鸡和桑拿鱼二选一，人数少优先半只鸡。",
+        budget: "约 ¥62–70/人",
+        detail: "高德：大良近良新桂南路君临名邸8号。营业约16:30–24:00；不要再加粥底火锅、虾和主食。",
+        pay: true, dianpingKeyword: "正嘢家美食 大良分店", xhsKeyword: "顺德 正嘢家 桑拿鸡 桑拿鱼"
+      },
+      {
+        name: "返回全季酒店南岗店", lat: 23.101061, lng: 113.539095,
+        type: "hotel", time: "21:30 出发",
+        desc: "预计 22:45–23:15 到。单司机已经疲劳时，直接取消夜宵。"
+      }
+    ]
+  },
+  {
+    id: 2,
+    label: "周日 · 汕头",
+    date: "8 月 2 日",
+    title: "两顿火锅拉开，中间加鹅肝",
+    color: "#c44932",
+    route: "全季南岗店 07:00 → 亮记 11:45 → 丹霞庄休息 → 苏南勤记鹅肝 15:10 → 甜品 16:00 → 创新土鸡 18:30 → 全季南岗店约 00:30",
+    locations: [
+      {
+        name: "全季酒店（广州黄埔南岗万达店）", lat: 23.101061, lng: 113.539095,
+        type: "hotel", time: "07:00",
+        desc: "广州东侧上高速更顺；单程约 390–420 公里，路上休息一次。"
+      },
+      {
+        name: "去程服务区休息", type: "transport", time: "09:15", nav: false,
+        desc: "由高德根据当天路线选择，不预设服务区，避免为了固定点绕路。"
+      },
+      {
+        name: "亮记牛肉", lat: 23.409759, lng: 116.759410,
+        type: "food", time: "11:45–13:15",
+        desc: "午餐锚点。点 3 种肉即可，保留晚餐战斗力。",
+        budget: "约 ¥117/人",
+        detail: "高德：新溪街道北兴路南2号亮记牛肉。建议吊龙 + 匙仁/匙柄 + 五花趾/三花趾，鲜肉批次到店再问。",
+        pay: true, dianpingKeyword: "汕头 亮记牛肉 新溪", xhsKeyword: "汕头 亮记牛肉"
+      },
+      {
+        name: "丹霞庄第一段休息", lat: 23.366510, lng: 116.715234,
+        type: "transport", time: "13:45–15:00", nav: false,
+        desc: "先真正坐下一小时左右；不塞南澳岛、潮州古城或小公园。"
+      },
+      {
+        name: "苏南勤记卤鹅（总店）", lat: 23.376867, lng: 116.705935,
+        type: "food", time: "15:10–15:50",
+        desc: "鹅肝专项小餐：粉肝优先，再配少量鹅肉或鹅腱；不点饭、汤和大拼盘。",
+        budget: "整顿人均约 ¥79；小餐按重量点",
+        detail: "高德：金平区芙蓉园30幢油料大厦东畔102号之二及二楼。09:00–21:00；上午可致电13902778183确认粉肝。吃不下时，粉肝堂食，其余打包。",
+        pay: true, dianpingKeyword: "汕头 苏南勤记卤鹅 总店 粉肝", xhsKeyword: "汕头 苏南勤记卤鹅 粉肝"
+      },
+      {
+        name: "广场老牌豆花甜汤（万象创意店）", lat: 23.366240, lng: 116.715990,
+        type: "drink", time: "16:00–16:30",
+        desc: "按“家常牛肉对面的甜品铺”暂定：离家常牛肉约 80 米。",
+        budget: "约 ¥13/人",
+        detail: "高德：丹霞庄西区33栋114号。若你记得的招牌不是这家，打开下方小红书/点评先看门头。",
+        pay: true, dianpingKeyword: "广场老牌豆花甜汤 万象创意店", xhsKeyword: "汕头 广场老牌豆花甜汤 万象创意店"
+      },
+      {
+        name: "丹霞庄第二段休息", lat: 23.366510, lng: 116.715234,
+        type: "transport", time: "16:35–17:45", nav: false,
+        desc: "卤鹅和甜品都只点小份；回商场或咖啡店坐下，17:45 去创新土鸡。"
+      },
+      {
+        name: "创新土鸡火锅", lat: 23.388064, lng: 116.781375,
+        type: "food", time: "18:30–19:45",
+        desc: "晚餐锚点。18:15 到店排队，吃完直接返广州。",
+        budget: "约 ¥60–69/人",
+        detail: "选择金鸿公路与昆仑山路交叉口北20米的新溪门店。建议鲜切鸡肉 + 鸡皮/鸡骨择一 + 青菜和主食。",
+        pay: true, dianpingKeyword: "汕头 创新土鸡火锅 新溪", xhsKeyword: "汕头 创新土鸡火锅"
+      },
+      {
+        name: "返程服务区强制休息", type: "transport", time: "22:15–22:45", nav: false,
+        desc: "至少 20 分钟。司机出现困意时继续休息，不追赶预计到达时间。"
+      },
+      {
+        name: "返回全季酒店南岗店", lat: 23.101061, lng: 113.539095,
+        type: "hotel", time: "约 00:15–00:45",
+        desc: "周日总驾驶约 9 小时；只有一位司机时，这一晚不再安排夜宵。"
+      },
+      {
+        name: "屋里甜汤（丹霞店）", lat: 23.365121, lng: 116.716567,
+        type: "drink", time: "—",
+        desc: "如果你记得的甜品店是“屋里甜汤”，它离家常牛肉约 150 米。",
+        budget: "备选",
+        detail: "高德：丹霞庄西区36号楼1层。",
+        pay: true, dianpingKeyword: "屋里甜汤 丹霞店", xhsKeyword: "汕头 屋里甜汤 丹霞店"
+      }
+    ]
+  },
+  {
+    id: 3,
+    label: "周一 · 机场",
+    date: "8 月 3 日",
+    title: "陈村一路北上，18:30 进入 T3",
+    color: "#44725b",
+    route: "全季南岗店 → 陈村粉食府 → 向群饭店百信店 → 加油 → 白云 T3 还车 → 进航站楼",
+    locations: [
+      {
+        name: "全季酒店南岗店（退房）", lat: 23.101061, lng: 113.539095,
+        type: "hotel", time: "08:30",
+        desc: "南岗到陈村需横穿广州南侧，预留 75–90 分钟；贵重物品随身带。"
+      },
+      {
+        name: "陈村粉食府（黄但记老店）", lat: 22.963454, lng: 113.225133,
+        type: "food", time: "09:45–10:30",
+        desc: "顺德早餐。陈村粉二选一，再配一份小食，给广州午餐留胃口。",
+        budget: "约 ¥67/人",
+        detail: "高德当前可能显示“陈村粉食府”；公开近期营业为06:30–15:00。点 XO 酱炒陈村粉或排骨蒸陈村粉。",
+        pay: true, dianpingKeyword: "黄但记 陈村粉食府", xhsKeyword: "顺德 黄但记 陈村粉"
+      },
+      {
+        name: "粤·向群饭店（百信广场店）", lat: 23.196985, lng: 113.256310,
+        type: "food", time: "12:30–14:00",
+        desc: "广州菜午餐放在机场路方向，避开北京路、荔湾老城停车与周一堵车。",
+        budget: "约 ¥79/人",
+        detail: "百信广场商场停车。建议葱油淋鸡、猪油渣生炒菜心，再从烧鹅/咕噜肉中选一。",
+        pay: true, dianpingKeyword: "粤向群饭店 百信广场店", xhsKeyword: "广州 向群饭店 百信广场店"
+      },
+      {
+        name: "百信广场休整", lat: 23.196985, lng: 113.256310,
+        type: "spot", time: "14:00–16:00", nav: false,
+        desc: "咖啡、补水、整理登机物品；16:00 必须启程，拥堵时提前到 15:30。"
+      },
+      {
+        name: "机场方向沿途加油", type: "transport", time: "17:00–17:30", nav: false,
+        desc: "按租车合同加满油并留电子小票；由高德按当天路线选顺路油站。"
+      },
+      {
+        name: "广州白云国际机场 T3 还车点", lat: 23.371174, lng: 113.316248,
+        type: "transport", time: "18:00–18:30",
+        desc: "还车就在 T3，无需机场外接驳；交车后直接进入航站楼。",
+        detail: "高德导航到 T3；若租车订单注明具体停车楼、入口或车道，以订单和现场标识为准。",
+        dianping: false
+      },
+      {
+        name: "进入广州白云国际机场 T3", lat: 23.371174, lng: 113.316248,
+        type: "transport", time: "18:30 后", nav: false,
+        desc: "20:30 航班，交车后直接办理值机、托运和安检。",
+        detail: "若为国际/港澳台航班，整体提前约1小时。航站楼最终以航司短信为准。",
+        dianping: false
+      }
+    ]
+  }
+];
+
+const TYPE_EMOJI = { food: "🍽️", spot: "📍", drink: "🥛", hotel: "🏨", transport: "🚗" };
+const TYPE_LABEL = { food: "餐", spot: "逛", drink: "甜", hotel: "住", transport: "行" };
+const IN_APP_WEBVIEW = /micromessenger|xhs|discover\/|weibo|qq\/|alipayclient|dingtalk|lark|feishu|ucbrowser|baiduboxapp|toutiao|newsarticle/i.test(navigator.userAgent || "");
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "");
+
+const locIndex = {};
+DAYS.forEach(day => day.locations.forEach((loc, idx) => { locIndex[`${day.id}:${idx}`] = loc; }));
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  })[ch]);
+}
+
+function amapWebUrl(loc) {
+  return `https://uri.amap.com/navigation?to=${loc.lng},${loc.lat},${encodeURIComponent(loc.name)}&mode=car&policy=1&src=trip-map&coordinate=wgs84&callnative=1`;
+}
+function amapAppUrl(loc) {
+  const scheme = IS_IOS ? "iosamap" : "androidamap";
+  return `${scheme}://navi?sourceApplication=trip-map&poiname=${encodeURIComponent(loc.name)}&lat=${loc.lat}&lon=${loc.lng}&dev=0&style=2`;
+}
+function openAmapKey(key) {
+  const loc = locIndex[key];
+  if (!loc || !loc.lat) return false;
+  window.location.href = IN_APP_WEBVIEW ? amapWebUrl(loc) : amapAppUrl(loc);
+  return false;
+}
+function dpUrl(loc) {
+  const keyword = loc.dianpingKeyword || loc.name;
+  return IN_APP_WEBVIEW
+    ? `https://m.dianping.com/searchshop?keyword=${encodeURIComponent(keyword)}`
+    : `dianping://searchshoplist?keyword=${encodeURIComponent(keyword)}`;
+}
+function xhsUrl(loc) {
+  const keyword = loc.xhsKeyword || loc.name;
+  return IN_APP_WEBVIEW
+    ? `https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(keyword)}`
+    : `xhsdiscover://search/result?keyword=${encodeURIComponent(keyword)}&target_search=notes&source=deeplink`;
+}
+
+const map = L.map("map", {
+  center: [23.05, 113.42],
+  zoom: 8,
+  zoomControl: false,
+  attributionControl: true
+});
+L.control.zoom({ position: "topright" }).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  maxZoom: 19,
+  attribution: "© OpenStreetMap © CARTO"
+}).addTo(map);
+
+const LocateControl = L.Control.extend({
+  options: { position: "bottomright" },
+  onAdd() {
+    const btn = L.DomUtil.create("button", "locate-btn");
+    btn.innerHTML = "◎";
+    btn.title = "定位我";
+    L.DomEvent.disableClickPropagation(btn);
+    btn.addEventListener("click", () => map.locate({ setView: true, maxZoom: 15 }));
+    return btn;
+  }
+});
+new LocateControl().addTo(map);
+let myMarker;
+map.on("locationfound", e => {
+  if (myMarker) myMarker.setLatLng(e.latlng);
+  else myMarker = L.circleMarker(e.latlng, {
+    radius: 7, color: "#fff", weight: 3, fillColor: "#1b73e8", fillOpacity: 1
+  }).addTo(map).bindPopup("我的位置");
+});
+
+function pinIcon(color, emoji) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:30px;height:30px;border-radius:50%;background:${color};border:2.5px solid #fff;display:grid;place-items:center;font-size:14px;box-shadow:0 4px 14px rgba(40,30,20,.23)">${emoji}</div>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -16]
+  });
+}
+let mapLayers = [];
+function clearMap() {
+  mapLayers.forEach(layer => map.removeLayer(layer));
+  mapLayers = [];
+}
+function addLayer(layer) {
+  layer.addTo(map);
+  mapLayers.push(layer);
+  return layer;
+}
+function showDay(dayId) {
+  clearMap();
+  const points = [];
+  if (dayId === 0) {
+    DAYS.slice(1).forEach(day => {
+      day.locations.forEach(loc => {
+        if (!loc.lat || loc.time === "—") return;
+        const marker = addLayer(L.circleMarker([loc.lat, loc.lng], {
+          radius: 5, color: "#fff", weight: 2, fillColor: day.color, fillOpacity: .95
+        }));
+        marker.bindPopup(`<b>${escapeHtml(loc.name)}</b><br><span style="color:#716960">${escapeHtml(day.label)}</span>`);
+        points.push([loc.lat, loc.lng]);
+      });
+    });
+    if (points.length) map.fitBounds(points, { padding: [28, 28] });
+    return;
+  }
+
+  const day = DAYS.find(item => item.id === dayId);
+  if (!day) return;
+  day.locations.forEach((loc, idx) => {
+    if (!loc.lat) return;
+    const marker = addLayer(L.marker([loc.lat, loc.lng], {
+      icon: pinIcon(day.color, TYPE_EMOJI[loc.type] || "•")
+    }));
+    const nav = loc.nav === false ? "" :
+      `<br><a href="${amapWebUrl(loc)}" onclick="return openAmapKey('${day.id}:${idx}')" style="color:#1b73e8;font-weight:700">高德驾车导航</a>`;
+    marker.bindPopup(`<b>${escapeHtml(loc.name)}</b><br><span style="color:#716960">${escapeHtml(loc.time)}</span><br>${escapeHtml(loc.desc)}${nav}`);
+    if (loc.time !== "—") points.push([loc.lat, loc.lng]);
+  });
+  if (points.length > 1) {
+    addLayer(L.polyline(points, { color: day.color, weight: 2.7, opacity: .54, dashArray: "7,7" }));
+  }
+  if (points.length) map.fitBounds(points, { padding: [40, 40], maxZoom: 13 });
+}
+
+function chips(loc) {
+  const values = [];
+  if (loc.budget) values.push(loc.budget);
+  if (loc.pay) values.push("微信 / 支付宝");
+  return values.length ? `<div class="chips">${values.map(v => `<span class="chip">${escapeHtml(v)}</span>`).join("")}</div>` : "";
+}
+function links(loc, dayId, idx) {
+  let html = "";
+  if (loc.nav !== false && loc.lat) {
+    html += `<a class="btn amap" href="${amapWebUrl(loc)}" onclick="return openAmapKey('${dayId}:${idx}')">🧭 高德驾车</a>`;
+  }
+  const dpEnabled = loc.dianping !== false && (loc.dianpingKeyword || loc.type === "food" || loc.type === "drink");
+  if (dpEnabled) html += `<a class="btn dp" href="${dpUrl(loc)}">🍜 点评</a>`;
+  if (loc.xhsKeyword) html += `<a class="btn xhs" href="${xhsUrl(loc)}">📕 小红书</a>`;
+  return html ? `<div class="links">${html}</div>` : "";
+}
+function locationCard(loc, dayId, idx) {
+  const type = loc.type || "transport";
+  return `
+  <div class="tl-item">
+    <div class="tl-dot ${type}"></div>
+    <article class="card">
+      <div class="time">${loc.time === "—" ? "备选" : escapeHtml(loc.time)}</div>
+      <div class="name"><span class="badge ${type}">${TYPE_LABEL[type] || "行"}</span>${escapeHtml(loc.name)}</div>
+      <div class="desc">${escapeHtml(loc.desc)}</div>
+      ${chips(loc)}
+      ${links(loc, dayId, idx)}
+      ${loc.detail ? `<div class="detail">${escapeHtml(loc.detail)}</div>` : ""}
+    </article>
+  </div>`;
+}
+function renderDay(dayId) {
+  const day = DAYS.find(item => item.id === dayId);
+  if (!day) return "";
+  const main = day.locations.map((loc, idx) => ({ loc, idx })).filter(item => item.loc.time !== "—");
+  const alt = day.locations.map((loc, idx) => ({ loc, idx })).filter(item => item.loc.time === "—");
+  return `
+    <header class="day-head">
+      <div class="kicker">${escapeHtml(day.date)} · 参考路线</div>
+      <h2>${escapeHtml(day.title)}</h2>
+      <p>现实中的天气、路况、体力与饥饿程度优先。</p>
+    </header>
+    <div class="route-bar"><strong>路线</strong><br>${escapeHtml(day.route)}</div>
+    <div class="section-head">当天安排</div>
+    <div class="timeline">${main.map(item => locationCard(item.loc, day.id, item.idx)).join("")}</div>
+    ${alt.length ? `<div class="section-head">位置待确认的备选</div><div class="timeline">${alt.map(item => locationCard(item.loc, day.id, item.idx)).join("")}</div>` : ""}
+  `;
+}
+function overviewContent() {
+  return `
+    <header class="hero">
+      <div class="eyebrow">2026.08.01—08.03 · 自驾吃喝</div>
+      <h1>广州 · 顺德 · 汕头<br>三日吃喝地图</h1>
+      <p>全程优先高德导航，跨城日不塞景点，周一为机场留足缓冲。</p>
+      <a class="download" href="./itinerary.md">打开完整文字路书 →</a>
+    </header>
+    <section class="info-grid">
+      <div class="info-card"><div class="label">周六</div><div class="value">顺德大良<br>三餐＋夜宵</div></div>
+      <div class="info-card"><div class="label">周日</div><div class="value">汕头往返<br>约 9 小时驾驶</div></div>
+      <div class="info-card"><div class="label">周一航班</div><div class="value">20:30<br>白云机场 T3</div></div>
+      <div class="info-card"><div class="label">硬截止</div><div class="value">18:30 T3还车<br>还完直接进站</div></div>
+    </section>
+
+    <div class="section-head">先看这三件事</div>
+    <section class="callout danger">
+      <strong>潮汕两顿火锅仍相隔 6 小时 45 分钟</strong>
+      <p>15:10 的苏南勤记只吃鹅粉肝＋少量鹅肉小拼，不点饭和汤；亮记 11:45、创新土鸡 18:30，20:00 返广州。</p>
+    </section>
+    <section class="callout safe">
+      <strong>周六顺德按四轮吃</strong>
+      <p>英姑 → 水仙头 → 会龙居 → 正嘢家桑拿鸡/鱼；21:30 离开顺德。单司机疲劳时，夜宵是第一取消项。</p>
+    </section>
+    <section class="callout safe">
+      <strong>周一不进广州老城</strong>
+      <p>陈村吃完后直接北上到白云区午餐，再去机场，避开老城停车和跨城回头路。</p>
+    </section>
+    <section class="callout danger">
+      <strong>住宿与还车区域都已固定</strong>
+      <p>住宿为全季酒店广州黄埔南岗万达店；还车就在白云 T3。若订单注明具体停车楼、入口或车道，以订单为准。</p>
+    </section>
+
+    <div class="section-head">三天概览</div>
+    <section class="day-list">
+      ${DAYS.slice(1).map(day => `
+        <button class="day-link" onclick="go(${day.id})">
+          <span class="top"><span class="dot" style="background:${day.color}"></span>${escapeHtml(day.label)} · ${escapeHtml(day.title)}</span>
+          <span class="sub">${escapeHtml(day.date)}</span>
+        </button>`).join("")}
+    </section>
+
+    <div class="section-head">研究与核对</div>
+    <section class="source-card">
+      门店坐标与导航名已按高德核对；人均、排队与菜品信号参考近期大众点评/携程公开信息。
+      广东 8 月暑热和阵雨都可能打乱节奏，出发当天早晨再看小时级天气与高德实时路况。
+      <br><a href="https://www.gz.gov.cn/zwfw/zxfw/jtfw/content/post_10507494.html" target="_blank">白云机场 T3 官方交通信息</a>
+      · <a href="https://www.autohome.com.cn/ask/23259796.html" target="_blank">广州—汕头车程参考</a>
+    </section>
+  `;
+}
+
+let currentDay = 0;
+const tabsEl = document.getElementById("tabs");
+const contentEl = document.getElementById("content");
+DAYS.forEach(day => {
+  const btn = document.createElement("button");
+  btn.className = "tab" + (day.id === 0 ? " active" : "");
+  btn.dataset.day = day.id;
+  btn.textContent = day.label;
+  tabsEl.appendChild(btn);
+});
+function go(dayId) {
+  currentDay = dayId;
+  tabsEl.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", Number(tab.dataset.day) === dayId));
+  contentEl.innerHTML = dayId === 0 ? overviewContent() : renderDay(dayId);
+  showDay(dayId);
+  window.scrollTo({ top: Math.max(0, document.getElementById("map").offsetHeight - 4), behavior: "smooth" });
+  const activeTab = tabsEl.querySelector(`[data-day="${dayId}"]`);
+  if (activeTab) activeTab.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+}
+tabsEl.addEventListener("click", event => {
+  const tab = event.target.closest(".tab");
+  if (tab) go(Number(tab.dataset.day));
+});
+
+contentEl.innerHTML = overviewContent();
+showDay(0);
+</script>
+</body>
+</html>
