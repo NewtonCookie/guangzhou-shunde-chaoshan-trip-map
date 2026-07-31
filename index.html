@@ -361,9 +361,9 @@ const DAYS = [
     id: 1,
     label: "周六 · 顺德",
     date: "8 月 1 日",
-    title: "大良三顿正餐，再加桑拿夜宵",
+    title: "大良三顿正餐＋双皮奶＋桑拿夜宵",
     color: "#dc7b2d",
-    route: "全季南岗店 → 英姑猪杂粥 → 水仙头 → 会龙居 → 正嘢家桑拿夜宵 → 全季南岗店",
+    route: "全季南岗店 → 英姑猪杂粥 → 清晖园/华盖路 → 民信双皮奶＋伴手礼 → 水仙头 → 会龙居 → 正嘢家桑拿夜宵 → 全季南岗店",
     locations: [
       {
         name: "全季酒店（广州黄埔南岗万达店）", lat: 23.101061, lng: 113.539095,
@@ -381,11 +381,19 @@ const DAYS = [
       },
       {
         name: "清晖园博物馆", lat: 22.838508, lng: 113.250458,
-        type: "spot", time: "10:35–11:30",
+        type: "spot", time: "10:35–11:05",
         desc: "短走一段；闷热、下雨或排队长，改华盖路室内消食。",
         budget: "可放弃",
         detail: "这是消食窗口，不是硬任务。周六客流大时，以体力和天气优先。",
         dianping: false, xhsKeyword: "顺德 清晖园"
+      },
+      {
+        name: "民信老铺（华盖路店）", lat: 22.835317, lng: 113.252909,
+        type: "drink", time: "11:05–11:30",
+        desc: "一碗原味双皮奶分食；顺便在华盖路买小包装顺德伴手礼。",
+        budget: "双皮奶约 ¥13；人均约 ¥27",
+        detail: "高德：大良华盖路119号。每日约08:00–23:30；点评约3.7分、2万条评价，周末排队风险高，超过15分钟就放弃。附近李禧记优先买蹦砂、南乳花生或鸡仔饼；鲜双皮奶和水牛奶需冷藏，不适合在8月车里放到周一。双皮奶粉/姜撞奶粉只买小袋试味。",
+        pay: true, dianpingKeyword: "顺德 民信老铺 华盖路店 双皮奶", xhsKeyword: "顺德 民信老铺 华盖路 双皮奶 伴手礼"
       },
       {
         name: "水仙头私房菜（近良店）", lat: 22.827020, lng: 113.263748,
@@ -398,7 +406,7 @@ const DAYS = [
       {
         name: "大良长休息", lat: 22.825757, lng: 113.303704,
         type: "transport", time: "14:20–16:20", nav: false,
-        desc: "找商场或咖啡店坐下；不补甜品，也不再加第二个景点。"
+        desc: "找商场或咖啡店坐下；双皮奶已经吃过，只喝水，不再补奶制品。"
       },
       {
         name: "寻味顺德·会龙居私房菜（华侨城店）", lat: 22.825758, lng: 113.303704,
@@ -746,7 +754,7 @@ function overviewContent() {
       <a class="download" href="./itinerary.md">打开完整文字路书 →</a>
     </header>
     <section class="info-grid">
-      <div class="info-card"><div class="label">周六</div><div class="value">顺德大良<br>三餐＋夜宵</div></div>
+      <div class="info-card"><div class="label">周六</div><div class="value">顺德大良<br>三餐＋甜品＋夜宵</div></div>
       <div class="info-card"><div class="label">周日</div><div class="value">汕头往返<br>约 9 小时驾驶</div></div>
       <div class="info-card"><div class="label">周一航班</div><div class="value">20:30<br>白云机场 T3</div></div>
       <div class="info-card"><div class="label">硬截止</div><div class="value">18:30 T3还车<br>还完直接进站</div></div>
@@ -758,8 +766,8 @@ function overviewContent() {
       <p>15:10 的苏南勤记只吃鹅粉肝＋少量鹅肉小拼，不点饭和汤；亮记 11:45、创新土鸡 18:30，20:00 返广州。</p>
     </section>
     <section class="callout safe">
-      <strong>周六顺德按四轮吃</strong>
-      <p>英姑 → 水仙头 → 会龙居 → 正嘢家桑拿鸡/鱼；21:30 离开顺德。单司机疲劳时，夜宵是第一取消项。</p>
+      <strong>周六甜品只加一碗，伴手礼买常温</strong>
+      <p>英姑 → 民信双皮奶分食 → 水仙头 → 会龙居 → 正嘢家桑拿鸡/鱼。华盖路顺手买李禧记小包装蹦砂、南乳花生或鸡仔饼；鲜奶制品不在 8 月车里放两天。</p>
     </section>
     <section class="callout safe">
       <strong>周一不进广州老城</strong>
